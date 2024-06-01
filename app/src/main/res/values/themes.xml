@@ -1,7 +1,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="Base.Theme._24B10234HW1" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Base.Theme._LoginApp" parent="Theme.Material3.DayNight.NoActionBar">
     </style>
 
-    <style name="Theme._24B10234HW1" parent="Base.Theme._24B10234HW1" />
+    <style name="Theme._LoginApp" parent="Base.Theme._LoginApp" />
 </resources>
