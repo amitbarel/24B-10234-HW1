@@ -11,12 +11,15 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.nfc.NfcAdapter;
 import android.os.BatteryManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
@@ -36,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
     private ShapeableImageView IMG_lock, IMG_bluetooth, IMG_nfc, IMG_battery;
     private MaterialButton BTN_login;
     private MaterialTextView TXT_title;
-    private boolean LOCKED = true;
+    private boolean isLocked = true;
 
     private final String BLUETOOTH_DEVICE_ADDRESS = "F8:AB:E5:83:7F:A6";
 
@@ -57,19 +60,38 @@ public class MainActivity extends AppCompatActivity {
                 if (isGranted) {
                     tryToLogin();
                 } else {
-                    boolean showDialog = ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.BLUETOOTH);
-                    if (showDialog){
-                        new MaterialAlertDialogBuilder(this)
-                                .setTitle("Bluetooth Permission Required")
-                                .setCancelable(false)
-                                .setMessage("Please grant Bluetooth Permission to use this app")
-                                .setPositiveButton("To App Info", (dialog, which) -> grantBluetoothPermission())
-                                .show();
+                    if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.BLUETOOTH_CONNECT)){
+                        openPermissionDialogue();
                     } else{
-                        grantBluetoothPermission();
+                        openAppInfo();
                     }
                 }
             });
+
+    private ActivityResultLauncher<Intent> manualPermissionLauncher
+            = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> tryToLogin()
+    );
+
+    private void openPermissionDialogue(){
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Bluetooth Permission Required")
+                .setCancelable(false)
+                .setMessage("This app requires Bluetooth permission to connect to your device.\n " +
+                        "Please grant the permission in app settings.\n" +
+                        "App Info -> Permissions -> Nearby devices -> Allow")
+                .setPositiveButton("To App Info", (dialog, which) -> openAppInfo())
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void openAppInfo() {
+        Intent intent = new Intent();
+        intent.setAction(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+        intent.setData(Uri.fromParts("package", getPackageName(), null));
+        manualPermissionLauncher.launch(intent);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -85,9 +107,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void tryToLogin() {
-        boolean isGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH) == PackageManager.PERMISSION_GRANTED;
+        boolean isGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED;
         if (!isGranted) {
-            permissionLauncher.launch(Manifest.permission.BLUETOOTH);
+            permissionLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT);
         }
         else {
             if (!isCharging()) {
@@ -104,9 +126,9 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 state = STATE.SETTINGS_OK;
                 IMG_nfc.setColorFilter(ContextCompat.getColor(this, R.color.verified));
-                LOCKED = false;
-                IMG_lock.setBackgroundResource(R.drawable.ic_lock_open);
+                isLocked = false;
                 TXT_title.setText("App Unlocked");
+                IMG_lock.setVisibility(View.GONE);
                 BTN_login.setVisibility(View.GONE);
             }
         }
@@ -134,7 +156,7 @@ public class MainActivity extends AppCompatActivity {
 
         if (bluetoothAdapter != null && bluetoothAdapter.isEnabled()) {
             if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                grantBluetoothPermission();
+                openAppInfo();
             }
             Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
             for (BluetoothDevice device : pairedDevices) {
@@ -151,15 +173,6 @@ public class MainActivity extends AppCompatActivity {
         }
         return false;
         }
-
-    private void grantBluetoothPermission() {
-        boolean showDialog = ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.NFC);
-        if (showDialog) {
-            startActivity(new Intent()
-                    .setAction(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                    .setData(Uri.fromParts("package", getPackageName(), null)));
-        }
-    }
 
     private boolean isNFCEnabled(){
         return nfcAdapter.isEnabled() && nfcAdapter != null;
