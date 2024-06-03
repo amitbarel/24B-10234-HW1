@@ -8,3 +8,7 @@
 
 ## About Me
 Amit Barel - 318431277
+
+## Demo
+https://github.com/amitbarel/24B-10234-HW1/assets/81353791/84ecb002-87e6-40d2-85b7-558b85f0adc7
+
